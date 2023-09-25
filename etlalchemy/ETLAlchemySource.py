@@ -1,6 +1,6 @@
 import codecs
 from itertools import islice
-from literal_value_generator import dump_to_sql_statement, dump_to_csv,\
+from etlalchemy.literal_value_generator import dump_to_sql_statement, dump_to_csv,\
     dump_to_oracle_insert_statements
 import random
 from migrate.changeset.constraint import ForeignKeyConstraint
@@ -25,8 +25,8 @@ from sqlalchemy.dialects.postgresql import BYTEA
 import inspect as ins
 import re
 import csv
-from schema_transformer import SchemaTransformer
-from etlalchemy_exceptions import DBApiNotFound
+from etlalchemy.schema_transformer import SchemaTransformer
+from etlalchemy.etlalchemy_exceptions import DBApiNotFound
 import os
 
 # Parse the connn_string to find relevant info for each db engine #
@@ -55,10 +55,10 @@ class ETLAlchemySource():
         # after data has been migrated, rather than before
         self.unique_columns = []
         self.compress_varchar = compress_varchar
-        
+
         self.logger = logging.getLogger("ETLAlchemySource")
         self.logger.propagate = False
-        
+
         for h in list(self.logger.handlers):
             # Clean up any old loggers...(useful during testing w/ multiple
             # log_files)
@@ -99,7 +99,7 @@ class ETLAlchemySource():
 
         self.tgt_insp = None
         self.src_insp = None
-        
+
         self.dst_engine = None
         self.constraints = {}
         self.indexes = {}
@@ -181,7 +181,7 @@ class ETLAlchemySource():
             column.type.__class__.__bases__)
         self.logger.info("({0}) {1}".format(column.name,
             column.type.__class__.__name__))
-        self.logger.info("Bases: {0}".format(str(base_classes))) 
+        self.logger.info("Bases: {0}".format(str(base_classes)))
 
         # Assume the column is empty, unless told otherwise
         null = True
@@ -462,7 +462,7 @@ class ETLAlchemySource():
                     column.name,
                     column.table.name
                    )
-        
+
         return column_copy
 
     def add_or_eliminate_column(
@@ -477,7 +477,7 @@ class ETLAlchemySource():
         table_name = T.name
         null = True
         idx = self.current_ordered_table_columns.index(column.name)
-        
+
         cname = column_copy.name
         columnHasGloballyIgnoredSuffix = len(
             filter(
@@ -689,7 +689,7 @@ class ETLAlchemySource():
             password = self.dst_engine.url.password
             db_name = self.dst_engine.url.database
             host = self.dst_engine.url.host
-            
+
             import psycopg2
             conn = psycopg2.connect(
                 """
@@ -880,7 +880,7 @@ class ETLAlchemySource():
         """"""""""""""""""""""""
         """ ** REFLECTION ** """
         """"""""""""""""""""""""
-       
+
         buffer_size = 10000
 
         if self.database_url.split(":")[0] == "oracle+cx_oracle":
@@ -919,7 +919,7 @@ class ETLAlchemySource():
         elif self.excluded_tables:
             TablesIterator = list(set(TablesIterator) -
                                   set(self.excluded_tables))
-       
+
         t_idx = -1
         t_total = len(TablesIterator)
         self.logger.info("""
@@ -996,7 +996,7 @@ class ETLAlchemySource():
                 self.logger.info(
                     "Building query to fetch all rows from {0}".format(
                         T_src.name))
-                
+
 
                 cnt = self.engine.execute(T_src.count()).fetchone()[0]
                 resultProxy = self.engine.execute(T_src.select())
@@ -1023,7 +1023,7 @@ class ETLAlchemySource():
 
                 # TODO: Use column/table mappers, would need to update foreign
                 # keys...
-            
+
                 for column in T_src.columns:
                     self.column_count += 1
                     ##############################
@@ -1033,7 +1033,7 @@ class ETLAlchemySource():
                     if column.primary_key:
                         pks.append(column.name.lower())
                         pk_count += 1
-                    
+
                     if column.autoincrement:
                         auto_inc_count += 1
                     ##############################
@@ -1088,7 +1088,7 @@ class ETLAlchemySource():
                 #self.tgt_insp.reflecttable(T, None)
                 t_start_dump = datetime.now()
                 t_start_load = datetime.now()
-                
+
                 row_buffer_size = 100000
                 if self.dst_engine.dialect.name.lower() == 'mssql' and \
                  not self.enable_mssql_bulk_insert:
@@ -1227,7 +1227,7 @@ class ETLAlchemySource():
                 # (i.e. can't create Idx w/ same name as column in Postgresql)
                 name = "IDX_" + table_name + "__" + \
                     "_".join(col) + "__" + str(this_idx_count)
-                # Max length of identifier is 63 characters in 
+                # Max length of identifier is 63 characters in
                 # postgresql & mysql
                 if len(name) > 63:
                     name = name[:60] + "_" + str(this_idx_count)
@@ -1341,7 +1341,7 @@ class ETLAlchemySource():
         # Add FKs
         ############################
         dst_meta = MetaData()
-        
+
         if self.dst_engine.dialect.name.lower() == "mssql":
             raise Exception(
                 "Adding Constraints to MSSQL is not supported" +
@@ -1426,7 +1426,7 @@ class ETLAlchemySource():
                 constrained_cols = filter(lambda c: c is not None,
                         map(lambda x: T.columns.get(x),
                               constrained_columns))
-                         
+
 
                 ################################
                 # Check that the constrained columns
@@ -1469,7 +1469,7 @@ class ETLAlchemySource():
                     table_name.upper(), T_ref.name.upper())
                 if len(constraint_name) > 63:
                     constraint_name = constraint_name[:63]
-                
+
                 try:
                     inspector.reflecttable(T_ref, None)
                 except sqlalchemy.exc.NoSuchTableError as e:
