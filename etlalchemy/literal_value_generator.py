@@ -2,14 +2,12 @@ import shutil
 import decimal
 import datetime
 # Find the best implementation available on this platform
-try:
-    from cStringIO import StringIO
-except:
-    from StringIO import StringIO
+from io import StringIO
+
 
 def _generate_literal_value_for_csv(value, dialect):
     dialect_name = dialect.name.lower()
-    
+
     if isinstance(value, basestring):
         if dialect_name in ['sqlite', 'mssql']:
             # No support for 'quote' enclosed strings
@@ -72,7 +70,7 @@ def _generate_literal_value_for_csv(value, dialect):
             raise NotImplementedError(
                     "No support for engine with dialect '%s'." +
                     "Implement it here!" % dialect.name)
-    
+
     else:
         raise NotImplementedError(
                     "Don't know how to literal-quote value %r" % value)
@@ -166,12 +164,12 @@ def dump_to_oracle_insert_statements(fp, engine, table, raw_rows, columns):
 def dump_to_csv(fp, table_name, columns, raw_rows, dialect):
     lines = []
     separator = ","
-    # Determine the separator based on Target DB 
+    # Determine the separator based on Target DB
     if dialect.name.lower() in ["sqlite"]:
         separator = "|"
     elif dialect.name.lower() in ["mssql"]:
         separator = "|,"
-        
+
     num_cols = len(raw_rows[0])
     num_rows = len(raw_rows)
     out = StringIO()
@@ -183,7 +181,7 @@ def dump_to_csv(fp, table_name, columns, raw_rows, dialect):
         out.write(_generate_literal_value_for_csv(raw_rows[i][num_cols - 1], dialect) + "\n")
     out.seek(0)
     fp.write(out.getvalue())
-            
+
 
 def generate_literal_value(value, dialect, type_):
     """Render the value of a bind parameter as a quoted literal.
